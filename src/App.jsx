@@ -3,6 +3,7 @@ import Hero from './components/Hero';
 import ProductGrid from './components/ProductGrid';
 import Testimonials from './components/Testimonials';
 import CTA from './components/CTA';
+import OrderHistory from './components/OrderHistory';
 
 function Footer() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <ProductGrid />
         <Testimonials />
         <CTA />
+        <OrderHistory />
       </main>
       <Footer />
     </div>
