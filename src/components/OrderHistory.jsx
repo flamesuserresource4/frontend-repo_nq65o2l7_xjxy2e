@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Wallet, Check } from 'lucide-react';
 
 export default function OrderHistory() {
@@ -7,11 +7,19 @@ export default function OrderHistory() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
 
-  // Simple demo admin pin to reveal verify/reject controls
+  // Admin auth (JWT)
+  const [adminName, setAdminName] = useState('Admin, M.Sadri');
   const [adminPin, setAdminPin] = useState('');
-  const isAdmin = adminPin === 'admin2026';
+  const [token, setToken] = useState('');
+
+  const isAdmin = Boolean(token);
 
   const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
+  useEffect(() => {
+    const t = localStorage.getItem('admin_token');
+    if (t) setToken(t);
+  }, []);
 
   const fetchOrders = async () => {
     if (!email) {
@@ -32,15 +40,47 @@ export default function OrderHistory() {
     }
   };
 
-  const updateStatus = async (orderId, action) => {
+  const adminLogin = async () => {
+    setError('');
     try {
-      const res = await fetch(`${backendBase}/api/orders/verify`, {
+      const res = await fetch(`${backendBase}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: adminName, pin: adminPin }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Login gagal');
+      }
+      const data = await res.json();
+      localStorage.setItem('admin_token', data.access_token);
+      setToken(data.access_token);
+      setAdminPin('');
+    } catch (e) {
+      setError(e.message || 'Login gagal');
+    }
+  };
+
+  const adminLogout = () => {
+    localStorage.removeItem('admin_token');
+    setToken('');
+  };
+
+  const updateStatus = async (orderId, action) => {
+    try {
+      if (!token) throw new Error('Harus login admin.');
+      const res = await fetch(`${backendBase}/api/orders/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ order_id: orderId, action }),
       });
-      if (!res.ok) throw new Error('Gagal memperbarui status');
-      // Refresh list after update
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Gagal memperbarui status');
+      }
       await fetchOrders();
     } catch (e) {
       setError(e.message || 'Gagal mengubah status');
@@ -129,17 +169,37 @@ export default function OrderHistory() {
 
           <div className="mt-6 border-t border-slate-100 pt-4">
             <details className="group">
-              <summary className="cursor-pointer select-none text-sm text-slate-600">Admin tools</summary>
-              <div className="mt-3 flex items-center gap-3">
-                <input
-                  type="password"
-                  value={adminPin}
-                  onChange={(e) => setAdminPin(e.target.value)}
-                  placeholder="Masukkan PIN admin"
-                  className="rounded-xl border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                />
-                <span className="text-xs text-slate-500">PIN demo: admin2026</span>
-              </div>
+              <summary className="cursor-pointer select-none text-sm text-slate-600">Admin</summary>
+              {!isAdmin ? (
+                <div className="mt-3 flex flex-col sm:flex-row items-center gap-3">
+                  <input
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="Nama Admin"
+                    className="w-full sm:w-56 rounded-xl border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                  <input
+                    type="password"
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value)}
+                    placeholder="PIN Login"
+                    className="w-full sm:w-40 rounded-xl border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                  <button
+                    onClick={adminLogin}
+                    className="inline-flex items-center justify-center rounded-xl bg-slate-900 text-white font-medium px-4 py-2 hover:bg-slate-800"
+                  >
+                    Login
+                  </button>
+                  <p className="text-xs text-slate-500">Gunakan: "Admin, M.Sadri" + PIN 200112</p>
+                </div>
+              ) : (
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">Admin masuk</span>
+                  <button onClick={adminLogout} className="text-sm rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5">Logout</button>
+                </div>
+              )}
             </details>
           </div>
         </div>
