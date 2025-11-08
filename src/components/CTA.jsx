@@ -6,6 +6,12 @@ export default function CTA() {
   const [copiedKey, setCopiedKey] = useState('');
   const [proofPreview, setProofPreview] = useState(null);
 
+  const [email, setEmail] = useState('');
+  const [plan, setPlan] = useState('ebook');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
   const danaNumber = '085825223172';
   const gopayNumber = '085825223172';
   const bri = {
@@ -36,6 +42,42 @@ export default function CTA() {
     reader.readAsDataURL(file);
   };
 
+  const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg('');
+    setResult(null);
+
+    try {
+      const payload = {
+        email,
+        plan,
+        payment_method: paymentMethod,
+        proof_image: proofPreview || null,
+      };
+
+      const res = await fetch(`${backendBase}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Gagal menyimpan pesanan (status ${res.status})`);
+      }
+
+      const data = await res.json();
+      setResult({ id: data.id, status: data.status });
+    } catch (err) {
+      setErrorMsg(err.message || 'Terjadi kesalahan. Coba lagi.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section id="beli" className="py-16 bg-slate-900 text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,14 +91,28 @@ export default function CTA() {
             </ul>
           </div>
           <div className="bg-white/10 rounded-2xl p-6 ring-1 ring-white/20">
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
+            <form onSubmit={onSubmit} className="space-y-5" aria-describedby="form-desc">
+              <p id="form-desc" className="sr-only">Form pembelian produk digital dengan opsi metode pembayaran dan unggah bukti transfer.</p>
               <div>
-                <label className="block text-sm mb-1">Email</label>
-                <input type="email" required placeholder="nama@email.com" className="w-full rounded-xl px-4 py-2 bg-white text-slate-900 placeholder-slate-400 focus:outline-none" />
+                <label className="block text-sm mb-1" htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@email.com"
+                  className="w-full rounded-xl px-4 py-2 bg-white text-slate-900 placeholder-slate-400 focus:outline-none"
+                />
               </div>
               <div>
-                <label className="block text-sm mb-1">Paket</label>
-                <select className="w-full rounded-xl px-4 py-2 bg-white text-slate-900 focus:outline-none">
+                <label className="block text-sm mb-1" htmlFor="plan">Paket</label>
+                <select
+                  id="plan"
+                  value={plan}
+                  onChange={(e) => setPlan(e.target.value)}
+                  className="w-full rounded-xl px-4 py-2 bg-white text-slate-900 focus:outline-none"
+                >
                   <option value="ebook">E-book</option>
                   <option value="kelas">Kelas Online</option>
                   <option value="template">Template Kit</option>
@@ -64,8 +120,8 @@ export default function CTA() {
               </div>
 
               <div>
-                <label className="block text-sm mb-2">Metode Pembayaran</label>
-                <div className="grid grid-cols-2 gap-3">
+                <span className="block text-sm mb-2">Metode Pembayaran</span>
+                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Metode Pembayaran">
                   {/* DANA */}
                   <label className="relative cursor-pointer">
                     <input
@@ -75,6 +131,7 @@ export default function CTA() {
                       checked={paymentMethod === 'DANA'}
                       onChange={() => setPaymentMethod('DANA')}
                       className="peer sr-only"
+                      aria-label="DANA"
                     />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
@@ -94,6 +151,7 @@ export default function CTA() {
                       checked={paymentMethod === 'OVO'}
                       onChange={() => setPaymentMethod('OVO')}
                       className="peer sr-only"
+                      aria-label="OVO"
                     />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
@@ -113,6 +171,7 @@ export default function CTA() {
                       checked={paymentMethod === 'GOPAY'}
                       onChange={() => setPaymentMethod('GOPAY')}
                       className="peer sr-only"
+                      aria-label="GOPAY"
                     />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
@@ -132,6 +191,7 @@ export default function CTA() {
                       checked={paymentMethod === 'BRI'}
                       onChange={() => setPaymentMethod('BRI')}
                       className="peer sr-only"
+                      aria-label="Bank BRI"
                     />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
@@ -247,11 +307,12 @@ export default function CTA() {
                     </div>
                   )}
 
-                  {/* Upload Bukti Pembayaran (simulasi) */}
+                  {/* Upload Bukti Pembayaran (opsional) */}
                   <div className="pt-2 border-t border-white/10">
-                    <label className="block text-sm mb-2">Upload Bukti Pembayaran</label>
+                    <label className="block text-sm mb-2" htmlFor="proof">Upload Bukti Pembayaran</label>
                     <div className="flex items-center gap-3">
                       <input
+                        id="proof"
                         type="file"
                         accept="image/*"
                         onChange={onFileChange}
@@ -270,13 +331,26 @@ export default function CTA() {
                         </button>
                       </div>
                     )}
-                    <p className="mt-2 text-xs text-slate-400">Ilustrasi unggah untuk verifikasi otomatis. Belum terhubung ke sistem pembayaran.</p>
+                    <p className="mt-2 text-xs text-slate-400">Anda bisa lanjut tanpa bukti; status menjadi pending sampai verifikasi.</p>
                   </div>
                 </div>
               </div>
 
-              <button type="submit" className="w-full rounded-xl bg-white text-slate-900 font-semibold py-3 hover:bg-slate-100">Lanjut ke Pembayaran</button>
-              <p className="text-xs text-slate-300 text-center">Simulasi form. Integrasi pembayaran DANA/OVO/GOPAY/BRI dapat ditambahkan kapan saja.</p>
+              <button type="submit" disabled={submitting} className="w-full rounded-xl bg-white text-slate-900 font-semibold py-3 hover:bg-slate-100 disabled:opacity-60 disabled:cursor-not-allowed">
+                {submitting ? 'Menyimpan...' : 'Simpan Pesanan'}
+              </button>
+
+              {result && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+                  Pesanan tersimpan. ID: <span className="font-mono">{result.id}</span> • Status: <span className="uppercase">{result.status}</span>
+                </div>
+              )}
+              {errorMsg && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200" role="alert">
+                  {errorMsg}
+                </div>
+              )}
+              <p className="text-xs text-slate-300 text-center">Data akan disimpan untuk riwayat dan verifikasi otomatis.</p>
             </form>
           </div>
         </div>
