@@ -1,6 +1,22 @@
-import { ShieldCheck, Zap, Wallet, Banknote } from 'lucide-react';
+import { useState } from 'react';
+import { ShieldCheck, Zap, Wallet, Banknote, Copy, Check } from 'lucide-react';
 
 export default function CTA() {
+  const [paymentMethod, setPaymentMethod] = useState('DANA');
+  const [copied, setCopied] = useState(false);
+
+  const danaNumber = '085825223172';
+
+  const handleCopy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      setCopied(false);
+    }
+  };
+
   return (
     <section id="beli" className="py-16 bg-slate-900 text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,7 +49,14 @@ export default function CTA() {
                 <div className="grid grid-cols-2 gap-3">
                   {/* DANA */}
                   <label className="relative cursor-pointer">
-                    <input type="radio" name="payment" value="DANA" defaultChecked className="peer sr-only" />
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="DANA"
+                      checked={paymentMethod === 'DANA'}
+                      onChange={() => setPaymentMethod('DANA')}
+                      className="peer sr-only"
+                    />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
                         <Wallet size={18} className="text-sky-300" />
@@ -45,7 +68,14 @@ export default function CTA() {
 
                   {/* OVO */}
                   <label className="relative cursor-pointer">
-                    <input type="radio" name="payment" value="OVO" className="peer sr-only" />
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="OVO"
+                      checked={paymentMethod === 'OVO'}
+                      onChange={() => setPaymentMethod('OVO')}
+                      className="peer sr-only"
+                    />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
                         <Wallet size={18} className="text-fuchsia-300" />
@@ -57,7 +87,14 @@ export default function CTA() {
 
                   {/* GOPAY */}
                   <label className="relative cursor-pointer">
-                    <input type="radio" name="payment" value="GOPAY" className="peer sr-only" />
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="GOPAY"
+                      checked={paymentMethod === 'GOPAY'}
+                      onChange={() => setPaymentMethod('GOPAY')}
+                      className="peer sr-only"
+                    />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
                         <Wallet size={18} className="text-cyan-300" />
@@ -69,7 +106,14 @@ export default function CTA() {
 
                   {/* BANK BRI */}
                   <label className="relative cursor-pointer">
-                    <input type="radio" name="payment" value="BRI" className="peer sr-only" />
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="BRI"
+                      checked={paymentMethod === 'BRI'}
+                      onChange={() => setPaymentMethod('BRI')}
+                      className="peer sr-only"
+                    />
                     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 flex items-center justify-between gap-3 peer-checked:border-white peer-checked:bg-white/20">
                       <div className="flex items-center gap-2">
                         <Banknote size={18} className="text-emerald-300" />
@@ -78,6 +122,37 @@ export default function CTA() {
                       <span className="text-xs text-white/70">Transfer</span>
                     </div>
                   </label>
+                </div>
+
+                {/* Detail pembayaran */}
+                <div className="mt-4 rounded-xl bg-slate-800/60 border border-white/10 p-4">
+                  {paymentMethod === 'DANA' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <Wallet size={18} className="text-sky-300" />
+                        <span className="font-semibold">Nomor Pembayaran DANA</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-slate-900/60 rounded-lg px-3 py-2">
+                        <code className="font-mono tracking-wide text-lg">{danaNumber}</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(danaNumber)}
+                          className="inline-flex items-center gap-1 rounded-md bg-white/10 hover:bg-white/20 px-2 py-1 text-xs"
+                          aria-label="Salin nomor DANA"
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          {copied ? 'Tersalin' : 'Salin'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-400">Silakan transfer ke nomor DANA di atas. Kirim bukti pembayaran via email setelah selesai.</p>
+                    </div>
+                  )}
+                  {paymentMethod !== 'DANA' && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-slate-200">Instruksi pembayaran akan ditampilkan untuk metode yang dipilih.</p>
+                      <p className="text-xs text-slate-400">Pilih DANA untuk melihat nomor pembayaran.</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
